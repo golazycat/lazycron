@@ -75,12 +75,7 @@ func handleJobSave(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if oldJob != nil {
-		protocol.HttpSuccess(w, oldJob)
-	} else {
-		protocol.HttpSuccess(w, nil)
-	}
-
+	protocol.HttpSuccess(w, oldJob)
 }
 
 // 返回lazycron的HTTP管理服务器.
