@@ -1,0 +1,12 @@
+{
+  "http.addr": "localhost",
+  "http.port": 8080,
+  "http.read_timeout": 10,
+  "http.write_timeout": 20,
+
+  "log.error_path": "error.log",
+
+  "etcd.endpoints": ["localhost:2379"],
+  "etcd.dial_timeout": 10
+
+}
