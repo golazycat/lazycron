@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/coreos/etcd/mvcc/mvccpb"
+	"github.com/golazycat/lazycron/common/etcd"
 
 	"github.com/golazycat/lazycron/common/protocol"
 
@@ -20,9 +20,7 @@ import (
 // 任务管理器结构
 // 保存etcd-cli的对象，以操作etcd来管理job
 type JobManagerBody struct {
-	client *clientv3.Client
-	kv     clientv3.KV
-	lease  clientv3.Lease
+	etcd.Connector
 }
 
 // 这个函数会把一个新的Job发布到etcd中去，其它worker可以接收这个Job
@@ -40,7 +38,7 @@ func (jobManager *JobManagerBody) SaveJob(job *protocol.Job) (*protocol.Job, err
 	}
 
 	// 保存到etcd
-	putResponse, err := JobManager.kv.Put(context.TODO(), jobKey,
+	putResponse, err := JobManager.Kv.Put(context.TODO(), jobKey,
 		string(jobValue), clientv3.WithPrevKV())
 	if err != nil {
 		return nil, err
@@ -48,7 +46,7 @@ func (jobManager *JobManagerBody) SaveJob(job *protocol.Job) (*protocol.Job, err
 
 	// 如果是更新操作，需要把旧的值返回出去
 	if putResponse.PrevKv != nil {
-		return getJobFromKv(putResponse.PrevKv), nil
+		return common.GetJobFromKv(putResponse.PrevKv), nil
 	}
 
 	return nil, nil
@@ -62,14 +60,14 @@ func (jobManager *JobManagerBody) DeleteJob(name string) (*protocol.Job, error) 
 
 	jobKey := common.JobKeyPrefix + name
 
-	delResponse, err := jobManager.kv.Delete(context.TODO(),
+	delResponse, err := jobManager.Kv.Delete(context.TODO(),
 		jobKey, clientv3.WithPrevKV())
 	if err != nil {
 		return nil, err
 	}
 	if len(delResponse.PrevKvs) != 0 {
 		// 删除操作针对单一job进行
-		return getJobFromKv(delResponse.PrevKvs[0]), nil
+		return common.GetJobFromKv(delResponse.PrevKvs[0]), nil
 	}
 	return nil, nil
 }
@@ -79,7 +77,7 @@ func (jobManager *JobManagerBody) ListJobs() ([]*protocol.Job, error) {
 
 	CheckJobManagerInit()
 
-	listResponse, err := jobManager.kv.Get(context.TODO(),
+	listResponse, err := jobManager.Kv.Get(context.TODO(),
 		common.JobKeyPrefix, clientv3.WithPrefix())
 
 	if err != nil {
@@ -88,7 +86,7 @@ func (jobManager *JobManagerBody) ListJobs() ([]*protocol.Job, error) {
 
 	jobs := make([]*protocol.Job, 0)
 	for _, kv := range listResponse.Kvs {
-		if job := getJobFromKv(kv); job != nil {
+		if job := common.GetJobFromKv(kv); job != nil {
 			jobs = append(jobs, job)
 		}
 	}
@@ -107,14 +105,14 @@ func (jobManager JobManagerBody) KillJob(name string) error {
 	killKey := common.KillJobPrefix + name
 
 	leaseGrantResponse, err :=
-		jobManager.lease.Grant(context.TODO(), 1)
+		jobManager.Lease.Grant(context.TODO(), 1)
 	if err != nil {
 		return err
 	}
 	leaseId := leaseGrantResponse.ID
 
 	// 这里不关心kill put操作的返回结果，执行成功即可
-	_, err = jobManager.kv.Put(context.TODO(), killKey,
+	_, err = jobManager.Kv.Put(context.TODO(), killKey,
 		"", clientv3.WithLease(leaseId))
 	if err != nil {
 		return err
@@ -143,38 +141,15 @@ func CheckJobManagerInit() {
 // 这个函数会尝试去连接etcd服务器，如果连接失败，会返回错误。
 func InitJobManager(conf *conf.MasterConf) error {
 
-	config := clientv3.Config{
-		Endpoints:   conf.EtcdEndPoints,
-		DialTimeout: common.IntSecond(conf.EtcdDialTimeout),
-	}
-
-	client, err := clientv3.New(config)
+	conn, err := etcd.CreateConnect(&conf.EtcdConf)
 	if err != nil {
 		return err
 	}
 
-	kv := clientv3.NewKV(client)
-	lease := clientv3.NewLease(client)
+	JobManager = JobManagerBody{}
+	JobManager.Connector = *conn
 
-	JobManager = JobManagerBody{
-		client: client,
-		kv:     kv,
-		lease:  lease,
-	}
 	isJMInit = true
 
 	return nil
-}
-
-// 从KV对中的Value获取Job对象
-// 这个过程需要取出Value，按照json进行解析，反序列化后返回
-// 如果解析失败，会返回nil
-func getJobFromKv(kv *mvccpb.KeyValue) *protocol.Job {
-
-	var job protocol.Job
-	if err := json.Unmarshal(kv.Value, &job); err != nil {
-		return nil
-	}
-
-	return &job
 }

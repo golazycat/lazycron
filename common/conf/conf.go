@@ -26,14 +26,14 @@ func FileArg() string {
 }
 
 // etcd配置结构
-type etcdConf struct {
+type EtcdConf struct {
 	EtcdDialTimeout int      `json:"etcd.dial_timeout"`
 	EtcdEndPoints   []string `json:"etcd.endpoints"`
 }
 
 // Master配置结构
 type MasterConf struct {
-	etcdConf
+	EtcdConf
 	HttpAddress      string `json:"http.addr"`
 	HttpPort         int    `json:"http.port"`
 	HttpReadTimeout  int    `json:"http.read_timeout"`
@@ -60,13 +60,13 @@ func ReadMasterConf(filename string) (*MasterConf, error) {
 // 默认Master配置
 func createDefaultMasterConf() *MasterConf {
 
-	etcdConf := etcdConf{
+	etcdConf := EtcdConf{
 		EtcdDialTimeout: 5,
 		EtcdEndPoints:   []string{"localhost:2379"},
 	}
 
 	return &MasterConf{
-		etcdConf:         etcdConf,
+		EtcdConf:         etcdConf,
 		HttpAddress:      "",
 		HttpPort:         8070,
 		HttpReadTimeout:  5,
