@@ -18,7 +18,6 @@ const (
 	HttpParamParseErrorNo      = 1
 	HttpParamJsonDecodeErrorNo = 2
 	JobManagerErrorNo          = 3
-	OtherServerErrorNo         = 4
 )
 
 var (
@@ -99,7 +98,7 @@ func handleJobDelete(w http.ResponseWriter, r *http.Request) {
 // Method: POST
 // Response Body:
 //     data会保存所有任务列表，如果没有任务，data保存空列表
-func handleJobList(w http.ResponseWriter, r *http.Request) {
+func handleJobList(w http.ResponseWriter, _ *http.Request) {
 
 	jobs, err := JobManager.ListJobs()
 	if err != nil {
