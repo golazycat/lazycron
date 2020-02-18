@@ -38,6 +38,7 @@ type MasterConf struct {
 	HttpPort         int    `json:"http.port"`
 	HttpReadTimeout  int    `json:"http.read_timeout"`
 	HttpWriteTimeout int    `json:"http.write_timeout"`
+	StaticWebRoot    string `json:"http.static_path"`
 	LogErrorFile     string `json:"log.error_path"`
 }
 
@@ -71,6 +72,7 @@ func createDefaultMasterConf() *MasterConf {
 		HttpReadTimeout:  5,
 		HttpWriteTimeout: 5,
 		LogErrorFile:     "",
+		StaticWebRoot:    "./static",
 	}
 }
 

@@ -139,6 +139,11 @@ func InitApiServer(conf *conf.MasterConf) error {
 	mux.HandleFunc("/job/list", handleJobList)
 	mux.HandleFunc("/job/kill", handleJobKill)
 
+	// static web root
+	staticDir := http.Dir(conf.StaticWebRoot)
+	staticHandler := http.FileServer(staticDir)
+	mux.Handle("/", http.StripPrefix("/", staticHandler))
+
 	var err error
 	httpListener, err = net.Listen("tcp",
 		common.GetHost(conf.HttpAddress, conf.HttpPort))

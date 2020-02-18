@@ -3,6 +3,7 @@
   "http.port": 8080,
   "http.read_timeout": 10,
   "http.write_timeout": 20,
+  "http.static_path": "./webroot",
 
   "log.error_path": "error.log",
 
