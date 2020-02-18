@@ -136,12 +136,17 @@ func CheckJobManagerInit() {
 	}
 }
 
+// JobManager初始化
+type JobManagerInitializer struct {
+	Conf *conf.MasterConf
+}
+
 // 初始化JobManager，在使用JobManager之前，必须调用这个函数，否则使用JobManager的任何函数
 // 会产生Fatal错误，直接退出程序。
 // 这个函数会尝试去连接etcd服务器，如果连接失败，会返回错误。
-func InitJobManager(conf *conf.MasterConf) error {
+func (j JobManagerInitializer) Init() error {
 
-	conn, err := etcd.CreateConnect(&conf.EtcdConf)
+	conn, err := etcd.CreateConnect(&j.Conf.EtcdConf)
 	if err != nil {
 		return err
 	}
@@ -152,4 +157,5 @@ func InitJobManager(conf *conf.MasterConf) error {
 	isJMInit = true
 
 	return nil
+
 }

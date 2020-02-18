@@ -128,9 +128,13 @@ func handleJobKill(w http.ResponseWriter, r *http.Request) {
 	protocol.HttpSuccess(w, nil)
 }
 
-// 返回lazycron的HTTP管理服务器.
-// 启动该服务器来对整个架构进行管理.
-func InitApiServer(conf *conf.MasterConf) error {
+// ApiServer 初始化器
+type ApiServerInitializer struct {
+	Conf *conf.MasterConf
+}
+
+// 初始化APiServer
+func (a ApiServerInitializer) Init() error {
 
 	mux := http.NewServeMux()
 
@@ -141,20 +145,20 @@ func InitApiServer(conf *conf.MasterConf) error {
 	mux.HandleFunc("/job/kill", handleJobKill)
 
 	// static web root
-	staticDir := http.Dir(conf.StaticWebRoot)
+	staticDir := http.Dir(a.Conf.StaticWebRoot)
 	staticHandler := http.FileServer(staticDir)
 	mux.Handle("/", http.StripPrefix("/", staticHandler))
 
 	var err error
 	httpListener, err = net.Listen("tcp",
-		common.GetHost(conf.HttpAddress, conf.HttpPort))
+		common.GetHost(a.Conf.HttpAddress, a.Conf.HttpPort))
 	if err != nil {
 		return err
 	}
 
 	httpServer := &http.Server{
-		ReadTimeout:  common.IntSecond(conf.HttpReadTimeout),
-		WriteTimeout: common.IntSecond(conf.HttpWriteTimeout),
+		ReadTimeout:  common.IntSecond(a.Conf.HttpReadTimeout),
+		WriteTimeout: common.IntSecond(a.Conf.HttpWriteTimeout),
 		Handler:      mux,
 	}
 
@@ -165,7 +169,7 @@ func InitApiServer(conf *conf.MasterConf) error {
 }
 
 // 调用该函数即可启动一个goroutine来监听API Http请求
-// 在调用前需要调用InitApiServer来初始化Http服务器，否则会产生错误
+// 在调用前需要调用ApiServerInitializer.Init()来初始化Http服务器，否则会产生错误
 func ApiServerStartListen() error {
 	if !isASInit {
 		return errors.New("ApiServer is not initialized")

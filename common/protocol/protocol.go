@@ -5,6 +5,12 @@ import (
 	"net/http"
 )
 
+// Job事件类型枚举
+const (
+	JobEventDelete = iota
+	JobEventUpdate
+)
+
 // 定时任务结构
 // 保存任务所需要的数据，由Master分配给Worker执行
 type Job struct {
@@ -16,6 +22,12 @@ type Job struct {
 	CronExpr string `json:"cron_expr"`
 }
 
+// Job事件结构体，保存了事件类型和产生事件对应的job指针
+type JobEvent struct {
+	EventType int
+	job       *Job
+}
+
 // Http API返回的所有数据都遵循这个结构
 type HttpResponse struct {
 	// 出错码，正常为0
@@ -24,6 +36,16 @@ type HttpResponse struct {
 	Message string `json:"message"`
 	// 请求返回数据
 	Data interface{} `json:"data"`
+}
+
+// 创建一个job事件对象
+// eventType建议使用JobEventXxx枚举类型
+func CreateJobEvent(eventType int, job *Job) *JobEvent {
+	return &JobEvent{
+		EventType: eventType,
+		job:       job,
+	}
+
 }
 
 // Http请求成功，errorno固定为0，message固定为"ok"
