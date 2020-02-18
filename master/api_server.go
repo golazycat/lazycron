@@ -8,11 +8,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/golazycat/lazycron/common/protocol"
-
 	"github.com/golazycat/lazycron/common"
 	"github.com/golazycat/lazycron/common/conf"
 	"github.com/golazycat/lazycron/common/logs"
+	"github.com/golazycat/lazycron/common/protocol"
 )
 
 const (
@@ -42,7 +41,7 @@ type ApiServer struct {
 // 保存任务
 // Method: POST
 // Request Body:
-// "job": {
+// job: {
 //     "name": "任务名称",
 //     "command": "任务命令",
 //     "cronExpr": "cron表达式",
@@ -53,13 +52,10 @@ type ApiServer struct {
 //
 func handleJobSave(w http.ResponseWriter, r *http.Request) {
 
-	if err := r.ParseForm(); err != nil {
-		protocol.HttpFail(w, HttpParamParseErrorNo,
-			"require job param", nil)
+	postJob := parseFormAndGet(w, r, "job")
+	if postJob == "" {
 		return
 	}
-
-	postJob := r.PostForm.Get("job")
 
 	var job protocol.Job
 	if err := json.Unmarshal([]byte(postJob), &job); err != nil {
@@ -70,12 +66,66 @@ func handleJobSave(w http.ResponseWriter, r *http.Request) {
 
 	oldJob, err := JobManager.SaveJob(&job)
 	if err != nil {
-		protocol.HttpFail(w, JobManagerErrorNo,
-			fmt.Sprintf("job save error: %s", err), nil)
+		jobManagerError(w, "save", err)
 		return
 	}
 
 	protocol.HttpSuccess(w, oldJob)
+}
+
+// 删除任务
+// Method: POST
+// Request Body:
+//    name: 要删除的job的名称
+// Return:
+//    若删除成功，data保存被删除的job，删除失败data为null
+func handleJobDelete(w http.ResponseWriter, r *http.Request) {
+
+	jobName := parseFormAndGet(w, r, "name")
+	if jobName == "" {
+		return
+	}
+
+	delJob, err := JobManager.DeleteJob(jobName)
+	if err != nil {
+		jobManagerError(w, "del", err)
+		return
+	}
+
+	protocol.HttpSuccess(w, delJob)
+}
+
+// 列出所有任务
+// Method: POST
+// Response Body:
+//     data会保存所有任务列表，如果没有任务，data保存空列表
+func handleJobList(w http.ResponseWriter, r *http.Request) {
+
+	jobs, err := JobManager.ListJobs()
+	if err != nil {
+		return
+	}
+
+	protocol.HttpSuccess(w, jobs)
+}
+
+// 强制杀死某个任务
+// 参数同删除任务
+// 这个Api仅仅会发送命令，不关心命令的执行结果，命令会由worker执行
+// 因此当返回成功时，仅表示命令成功被发送，不表示任务真的被杀死
+func handleJobKill(w http.ResponseWriter, r *http.Request) {
+
+	jobName := parseFormAndGet(w, r, "name")
+	if jobName == "" {
+		return
+	}
+
+	err := JobManager.KillJob(jobName)
+	if err != nil {
+		jobManagerError(w, "kill", err)
+		return
+	}
+	protocol.HttpSuccess(w, nil)
 }
 
 // 返回lazycron的HTTP管理服务器.
@@ -83,7 +133,12 @@ func handleJobSave(w http.ResponseWriter, r *http.Request) {
 func InitApiServer(conf *conf.MasterConf) error {
 
 	mux := http.NewServeMux()
+
+	// job api
 	mux.HandleFunc("/job/save", handleJobSave)
+	mux.HandleFunc("/job/del", handleJobDelete)
+	mux.HandleFunc("/job/list", handleJobList)
+	mux.HandleFunc("/job/kill", handleJobKill)
 
 	var err error
 	httpListener, err = net.Listen("tcp",
@@ -119,4 +174,31 @@ func ApiServerStartListen() error {
 		}
 	}()
 	return nil
+}
+
+// 辅助函数，解析表单并返回某个key的value
+// 如果解析失败或者key不存在，会自动将错误json写入responseWriter并返回""
+func parseFormAndGet(w http.ResponseWriter, r *http.Request, paramName string) string {
+
+	if err := r.ParseForm(); err != nil {
+		protocol.HttpFail(w, HttpParamParseErrorNo,
+			"parse form error", nil)
+		return ""
+	}
+
+	val := r.PostForm.Get(paramName)
+	if val == "" {
+		protocol.HttpFail(w, HttpParamParseErrorNo,
+			fmt.Sprintf("require param %s", paramName), nil)
+		return ""
+
+	}
+	return val
+}
+
+// JobManager错误通用返回
+func jobManagerError(w http.ResponseWriter, op string, err error) {
+	protocol.HttpFail(w, JobManagerErrorNo,
+		fmt.Sprintf("job %s error: %s", op, err), nil)
+
 }

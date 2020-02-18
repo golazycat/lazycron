@@ -38,7 +38,7 @@ func main() {
 
 	// 初始化环境
 	initEnv()
-	logs.Info.Printf("Initialzed env.")
+	logs.Info.Printf("Initialized env.")
 
 	// 初始化ETCD连接
 	err = master.InitJobManager(masterConf)
