@@ -1,0 +1,14 @@
+{
+  "http.addr": "192.168.7.1",
+  "http.port": 8080,
+  "http.read_timeout": 5,
+  "http.write_timeout": 5,
+  "http.static_path": "/usr/static",
+  "http.error_path": "error.log",
+
+  "etcd.dial_timeout": 67,
+  "etcd.endpoints": ["120.5.67.123:2379"],
+
+  "run.n_thread": 5
+
+}

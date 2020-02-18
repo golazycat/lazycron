@@ -8,8 +8,9 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/golazycat/lazycron/master/conf"
+
 	"github.com/golazycat/lazycron/common"
-	"github.com/golazycat/lazycron/common/conf"
 	"github.com/golazycat/lazycron/common/logs"
 	"github.com/golazycat/lazycron/common/protocol"
 )

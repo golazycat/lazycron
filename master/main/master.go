@@ -6,38 +6,36 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/golazycat/lazycron/common"
+	baseconf "github.com/golazycat/lazycron/common/baseconf"
 
-	"github.com/golazycat/lazycron/common/conf"
+	"github.com/golazycat/lazycron/master/conf"
+
+	"github.com/golazycat/lazycron/common"
 
 	"github.com/golazycat/lazycron/common/logs"
 	"github.com/golazycat/lazycron/master"
 )
 
 // 初始化基本runtime环境
-func initEnv() {
-	runtime.GOMAXPROCS(runtime.NumCPU())
+func initEnv(conf *conf.MasterConf) {
+	runtime.GOMAXPROCS(conf.NThread)
 }
 
 func main() {
 
 	// 初始化配置
-	confFilename := conf.FileArg()
-	masterConf, err := conf.ReadMasterConf(confFilename)
-	if err != nil {
-		fmt.Printf("Init conf error: %s\n", err)
-		os.Exit(1)
-	}
+	confFilename := baseconf.FileArg()
+	masterConf := conf.ReadMasterConf(confFilename)
 
 	// 初始化日志
-	err = logs.InitLoggers(masterConf.LogErrorFile)
+	err := logs.InitLoggers(masterConf.LogErrorFile)
 	if err != nil {
 		fmt.Printf("Init log error: %s\n", err)
 		os.Exit(1)
 	}
 
 	// 初始化环境
-	initEnv()
+	initEnv(masterConf)
 	logs.Info.Printf("Initialized env.")
 
 	// 初始化ETCD连接

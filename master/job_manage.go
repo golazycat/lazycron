@@ -5,13 +5,13 @@ import (
 	"encoding/json"
 	"os"
 
+	"github.com/golazycat/lazycron/master/conf"
+
 	"github.com/golazycat/lazycron/common/etcd"
 
 	"github.com/golazycat/lazycron/common/protocol"
 
 	"github.com/golazycat/lazycron/common"
-
-	"github.com/golazycat/lazycron/common/conf"
 
 	"github.com/coreos/etcd/clientv3"
 	"github.com/golazycat/lazycron/common/logs"

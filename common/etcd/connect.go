@@ -3,7 +3,7 @@ package etcd
 import (
 	"github.com/coreos/etcd/clientv3"
 	"github.com/golazycat/lazycron/common"
-	"github.com/golazycat/lazycron/common/conf"
+	"github.com/golazycat/lazycron/common/baseconf"
 )
 
 // etcd连接对象，保存了操作etcd所需要的各种对象
@@ -15,7 +15,7 @@ type Connector struct {
 
 // 新建一个etcd连接，返回连接对象
 // 参数中包括了连接etcd所需要的各种配置
-func CreateConnect(conf *conf.EtcdConf) (*Connector, error) {
+func CreateConnect(conf *baseconf.EtcdConf) (*Connector, error) {
 
 	config := clientv3.Config{
 		Endpoints:   conf.EtcdEndPoints,
