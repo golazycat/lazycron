@@ -22,14 +22,21 @@ func main() {
 	baseinit.Init(worker.JobWorkerInitializer{
 		Conf: workerConf}, "job worker")
 
+	baseinit.Init(worker.ExecutorInitializer{}, "executor")
+
+	baseinit.Init(worker.SchedulerInitializer{}, "scheduler")
+
 	logs.Info.Printf("use conf: %+v", workerConf)
 
-	logs.Info.Printf("begin watching jobs...")
 	err := worker.JobWorker.BeginWatchJobs()
+	logs.Info.Printf("begin watching jobs...")
 	if err != nil {
 		logs.Error.Printf("watch job error: %s", err)
 		os.Exit(1)
 	}
+
+	worker.Scheduler.BeginScheduling()
+	logs.Info.Printf("begin scheduling...")
 
 	common.LoopForever()
 

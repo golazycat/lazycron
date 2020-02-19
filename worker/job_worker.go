@@ -2,7 +2,6 @@ package worker
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/coreos/etcd/clientv3"
@@ -37,10 +36,7 @@ func (jobWorker *JobWorkerBody) BeginWatchJobs() error {
 		if job := common.GetJobFromKv(kv); job != nil {
 
 			jobEvent := protocol.CreateJobEvent(protocol.JobEventUpdate, job)
-			// TODO: 将job同步给scheduler
-
-			fmt.Printf("Event: %+v\n", jobEvent)
-
+			Scheduler.PushEvent(jobEvent)
 		}
 	}
 
@@ -48,6 +44,36 @@ func (jobWorker *JobWorkerBody) BeginWatchJobs() error {
 	go jobWorker.keepWatch(getResponse.Header.Revision)
 
 	return nil
+}
+
+// 处理一个新watch到的event，构建JobEvent对象，发给Scheduler调度
+func (jobWorker *JobWorkerBody) handleWatchEvent(event *clientv3.Event) {
+
+	var jobEvent *protocol.JobEvent = nil
+
+	switch event.Type {
+	case mvccpb.PUT:
+		var job *protocol.Job
+		if job = common.GetJobFromKv(event.Kv); job == nil {
+			return
+		}
+
+		jobEvent = protocol.CreateJobEvent(protocol.JobEventUpdate, job)
+
+	case mvccpb.DELETE:
+		joName := common.GetJobNameFromKv(event.Kv)
+		job := protocol.Job{Name: joName}
+
+		jobEvent = protocol.CreateJobEvent(protocol.JobEventDelete, &job)
+	}
+
+	if jobEvent == nil {
+		// 未知的事件不予处理
+		return
+	}
+
+	Scheduler.PushEvent(jobEvent)
+
 }
 
 // 当初始jobs读取完成后，会获得最后的一个revision，该函数从最后的revision的下一个开始进行
@@ -63,39 +89,10 @@ func (jobWorker *JobWorkerBody) keepWatch(initLastRevision int64) {
 
 	// 处理监听事件
 	for watchResponse := range watchChan {
-
 		for _, watchEvent := range watchResponse.Events {
-
-			var jobEvent *protocol.JobEvent = nil
-
-			switch watchEvent.Type {
-			case mvccpb.PUT:
-				var job *protocol.Job
-				if job = common.GetJobFromKv(watchEvent.Kv); job != nil {
-					continue
-				}
-
-				jobEvent = protocol.CreateJobEvent(protocol.JobEventUpdate, job)
-
-			case mvccpb.DELETE:
-				joName := common.GetJobNameFromKv(watchEvent.Kv)
-				job := protocol.Job{Name: joName}
-
-				jobEvent = protocol.CreateJobEvent(protocol.JobEventDelete, &job)
-			}
-
-			if jobEvent == nil {
-				// 未知的事件不予处理
-				continue
-			}
-
-			// TODO: 事件推送给scheduler
-			fmt.Printf("Event: %+v\n", jobEvent)
-
+			jobWorker.handleWatchEvent(watchEvent)
 		}
-
 	}
-
 }
 
 var (

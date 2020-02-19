@@ -25,7 +25,7 @@ type Job struct {
 // Job事件结构体，保存了事件类型和产生事件对应的job指针
 type JobEvent struct {
 	EventType int
-	job       *Job
+	Job       *Job
 }
 
 // Http API返回的所有数据都遵循这个结构
@@ -43,7 +43,7 @@ type HttpResponse struct {
 func CreateJobEvent(eventType int, job *Job) *JobEvent {
 	return &JobEvent{
 		EventType: eventType,
-		job:       job,
+		Job:       job,
 	}
 
 }
