@@ -16,6 +16,8 @@ type ExecutorBody struct {
 
 // 执行指定的job，并将执行结果返回给Scheduler
 // 执行过程会异步进行
+// 注意，在执行前，需要尝试获取这个job的分布式锁，如果获取失败，说明
+// 有其他的worker正在执行这个job，则会跳过这个job的执行
 func (executor *ExecutorBody) Execute(info *JobExecuteInfo) {
 
 	CheckExecutorInit()
@@ -26,18 +28,32 @@ func (executor *ExecutorBody) Execute(info *JobExecuteInfo) {
 			ExecuteInfo: info,
 			StartTime:   time.Now(),
 		}
+		jobLock := CreateJobLock(info.Job.Name, &JobWorker.Connector)
+		defer jobLock.UnLock()
 
-		cmd := exec.CommandContext(context.TODO(),
-			"/bin/bash", "-c", info.Job.Command)
+		if err := jobLock.Lock(); err != nil {
+			// 抢占锁失败，错误退出
+			result.EndTime = time.Now()
+			result.Err = LockOccupiedError
 
-		output, err := cmd.CombinedOutput()
-		if output == nil {
-			output = make([]byte, 0)
+		} else {
+
+			// 抢占分布式锁需要花时间，因此这里重置开始时间
+			result.StartTime = time.Now()
+
+			cmd := exec.CommandContext(context.TODO(),
+				"/bin/bash", "-c", info.Job.Command)
+
+			output, err := cmd.CombinedOutput()
+			if output == nil {
+				output = make([]byte, 0)
+			}
+
+			result.EndTime = time.Now()
+			result.Output = output
+			result.Err = err
+
 		}
-
-		result.EndTime = time.Now()
-		result.Output = output
-		result.Err = err
 
 		Scheduler.PushJobResult(&result)
 	}()

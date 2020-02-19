@@ -24,7 +24,8 @@ func main() {
 
 	baseinit.Init(worker.ExecutorInitializer{}, "executor")
 
-	baseinit.Init(worker.SchedulerInitializer{}, "scheduler")
+	baseinit.Init(worker.SchedulerInitializer{
+		LogJob: workerConf.LogJob}, "scheduler")
 
 	logs.Info.Printf("use conf: %+v", workerConf)
 
