@@ -9,6 +9,7 @@ import (
 const (
 	JobEventDelete = iota
 	JobEventUpdate
+	JobEventKill
 )
 
 // 定时任务结构
@@ -26,6 +27,17 @@ type Job struct {
 type JobEvent struct {
 	EventType int
 	Job       *Job
+}
+
+type JobLog struct {
+	JobName          string `bson:"job_name"`
+	Command          string `bson:"command"`
+	Err              string `bson:"err"`
+	Output           string `bson:"output"`
+	PlanTime         int64  `bson:"plan_time"`
+	ScheduleTime     int64  `bson:"schedule_time"`
+	ExecuteStartTime int64  `bson:"exec_start_time"`
+	ExecuteEndTime   int64  `bson:"exec_end_time"`
 }
 
 // Http API返回的所有数据都遵循这个结构

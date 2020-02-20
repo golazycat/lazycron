@@ -81,7 +81,7 @@ func (jobLock *JobLock) Lock() error {
 		return err
 	}
 
-	if txnResponse.Succeeded {
+	if !txnResponse.Succeeded {
 		// 锁被占用
 		jobLock.cancelLock()
 		return LockOccupiedError

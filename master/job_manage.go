@@ -102,7 +102,7 @@ func (jobManager JobManagerBody) KillJob(name string) error {
 
 	CheckJobManagerInit()
 
-	killKey := common.KillJobPrefix + name
+	killKey := common.JobKillPrefix + name
 
 	leaseGrantResponse, err :=
 		jobManager.Lease.Grant(context.TODO(), 1)

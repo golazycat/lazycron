@@ -38,6 +38,11 @@ func GetJobNameFromKv(kv *mvccpb.KeyValue) string {
 	return strings.TrimPrefix(string(kv.Key), JobKeyPrefix)
 }
 
+// 从KV kill中的key取得job名称
+func GetJobNameFromKill(kv *mvccpb.KeyValue) string {
+	return strings.TrimPrefix(string(kv.Key), JobKillPrefix)
+}
+
 // 让程序永远运行下去
 func LoopForever() {
 	for {

@@ -1,7 +1,7 @@
 package worker
 
 import (
-	"context"
+	"math/rand"
 	"os"
 	"os/exec"
 	"time"
@@ -31,6 +31,9 @@ func (executor *ExecutorBody) Execute(info *JobExecuteInfo) {
 		jobLock := CreateJobLock(info.Job.Name, &JobWorker.Connector)
 		defer jobLock.UnLock()
 
+		// 随机睡眠，增加其他worker的竞争
+		time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
+
 		if err := jobLock.Lock(); err != nil {
 			// 抢占锁失败，错误退出
 			result.EndTime = time.Now()
@@ -41,7 +44,7 @@ func (executor *ExecutorBody) Execute(info *JobExecuteInfo) {
 			// 抢占分布式锁需要花时间，因此这里重置开始时间
 			result.StartTime = time.Now()
 
-			cmd := exec.CommandContext(context.TODO(),
+			cmd := exec.CommandContext(info.CancelCtx,
 				"/bin/bash", "-c", info.Job.Command)
 
 			output, err := cmd.CombinedOutput()

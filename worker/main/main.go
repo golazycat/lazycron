@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/golazycat/lazycron/common/job"
+
 	"github.com/golazycat/lazycron/common"
 	"github.com/golazycat/lazycron/common/baseconf"
 	"github.com/golazycat/lazycron/common/baseinit"
@@ -18,6 +20,9 @@ func main() {
 
 	baseinit.Init(baseinit.LoggersInitializer{
 		ErrorFilePath: ""}, "log")
+
+	baseinit.Init(job.LoggerInitializer{
+		Conf: workerConf.MongoConf}, "job log")
 
 	baseinit.Init(worker.JobWorkerInitializer{
 		Conf: workerConf}, "job worker")

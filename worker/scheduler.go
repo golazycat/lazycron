@@ -1,8 +1,11 @@
 package worker
 
 import (
+	"context"
 	"os"
 	"time"
+
+	job2 "github.com/golazycat/lazycron/common/job"
 
 	"github.com/gorhill/cronexpr"
 
@@ -26,10 +29,15 @@ type JobSchedulePlan struct {
 // 其中，Job存了执行job的信息，PlanTime表示job的计划执行时间，RealTime表示job的真正执行时间
 // 这二者可能有差异是因为机器等各种不可控因素，job的真正执行时间和计划时间不匹配
 // 这些情况都需要让Executor知晓，因此保存在这个结构体中
+// 另外，一个执行中的job可能随时会被kill掉，这个操作需要用到context的cancelContext
+// Executor在执行的时候需要注册这个context，随后Scheduler就可以随时通过cancelFunc来中途
+// 中断允许中的job了
 type JobExecuteInfo struct {
-	Job      *protocol.Job
-	PlanTime time.Time
-	RealTime time.Time
+	Job        *protocol.Job
+	PlanTime   time.Time
+	RealTime   time.Time
+	CancelCtx  context.Context
+	CancelFunc context.CancelFunc
 }
 
 // Job执行结果。Job在由Executor执行完成后，Executor会创建这个对象并返回给Scheduler(通过channel)
@@ -61,10 +69,13 @@ func CreateJobSchedulerPlan(job *protocol.Job) (*JobSchedulePlan, error) {
 // 创建Job执行信息，执行信息中的PlanTime由计划plan的NextTime决定，而RealTime由当前时间决定
 func CreateJobExecuteInfo(plan *JobSchedulePlan) *JobExecuteInfo {
 
+	cancelCtx, cancelFunc := context.WithCancel(context.TODO())
 	return &JobExecuteInfo{
-		Job:      plan.Job,
-		PlanTime: plan.NextTime,
-		RealTime: time.Now(),
+		Job:        plan.Job,
+		PlanTime:   plan.NextTime,
+		RealTime:   time.Now(),
+		CancelCtx:  cancelCtx,
+		CancelFunc: cancelFunc,
 	}
 }
 
@@ -95,6 +106,7 @@ func (scheduler *SchedulerBody) BeginScheduling() {
 
 // 处理一个job事件。job事件由JobWorker负责监听并发给Scheduler
 // 如果事件是更新，则需要为这个job创建新的计划并加到计划表里；如果是删除，则需要从计划表里删除这个job
+// 如果事件是强杀，
 func (scheduler *SchedulerBody) handleJobEvent(jobEvent *protocol.JobEvent) {
 
 	switch jobEvent.EventType {
@@ -113,6 +125,17 @@ func (scheduler *SchedulerBody) handleJobEvent(jobEvent *protocol.JobEvent) {
 		if _, exists := scheduler.planTable[jobEvent.Job.Name]; exists {
 			delete(scheduler.planTable, jobEvent.Job.Name)
 		}
+
+	case protocol.JobEventKill:
+		if jobExecuteInfo, exist :=
+			scheduler.jobExecuteTable[jobEvent.Job.Name]; exist {
+
+			jobExecuteInfo.CancelFunc()
+
+			if scheduler.logJob {
+				logs.Info.Printf("killed job: %s", jobEvent.Job.Name)
+			}
+		}
 	}
 
 }
@@ -126,7 +149,36 @@ func (scheduler *SchedulerBody) handleJobResult(jobResult *JobExecuteResult) {
 	// 从执行任务中删除该job
 	delete(scheduler.jobExecuteTable, jobName)
 
-	// TODO: 将执行结果加到db中
+	// 生成job log，加到db
+	if jobResult.Err != LockOccupiedError {
+
+		job := jobResult.ExecuteInfo.Job
+		jobLog := protocol.JobLog{
+			JobName:          job.Name,
+			Command:          job.Command,
+			Output:           string(jobResult.Output),
+			PlanTime:         jobResult.ExecuteInfo.PlanTime.Unix(),
+			ScheduleTime:     jobResult.ExecuteInfo.RealTime.Unix(),
+			ExecuteStartTime: jobResult.StartTime.Unix(),
+			ExecuteEndTime:   jobResult.EndTime.Unix(),
+		}
+
+		if jobResult.Err != nil {
+			jobLog.Err = jobResult.Err.Error()
+		} else {
+			jobLog.Err = ""
+		}
+
+		go func() {
+
+			err := job2.Logger.Insert(&jobLog)
+			if err != nil {
+				logs.Warn.Printf("job log not saved, error: %s", err)
+			}
+
+		}()
+
+	}
 }
 
 // 浏览计划表中的所有job，执行其中需要执行的job，并更新下一次执行时间

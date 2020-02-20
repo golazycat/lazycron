@@ -78,3 +78,13 @@ type RunConf struct {
 func (conf *RunConf) SetDefault() {
 	conf.NThread = runtime.NumCPU()
 }
+
+type MongoConf struct {
+	ConnectUrl     string `json:"mongodb.connect_url"`
+	ConnectTimeout int    `json:"mongodb.connect_timeout"`
+}
+
+func (m *MongoConf) SetDefault() {
+	m.ConnectUrl = "mongodb://localhost:27017"
+	m.ConnectTimeout = 5
+}
