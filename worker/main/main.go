@@ -21,6 +21,9 @@ func main() {
 	baseinit.Init(baseinit.LoggersInitializer{
 		ErrorFilePath: ""}, "log")
 
+	baseinit.Init(worker.RegisterInitializer{
+		Conf: workerConf.EtcdConf}, "register")
+
 	baseinit.Init(joblog.LoggerInitializer{
 		Conf: workerConf.MongoConf}, "job log")
 	joblog.Logger.BeginListening()

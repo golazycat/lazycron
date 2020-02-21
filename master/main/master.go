@@ -29,6 +29,9 @@ func main() {
 	baseinit.Init(joblog.LoggerInitializer{
 		Conf: masterConf.MongoConf}, "job log")
 
+	baseinit.Init(master.WorkerManagerInitializer{
+		Conf: masterConf.EtcdConf}, "worker manager")
+
 	// 初始化环境
 	baseinit.Init(baseinit.RunInitializer{
 		RunConf: &masterConf.RunConf}, "runtime")

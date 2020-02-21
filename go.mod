@@ -8,7 +8,7 @@ require (
 	github.com/coreos/pkg v0.0.0-20180928190104-399ea9e2e55f // indirect
 	github.com/gogo/protobuf v1.3.1 // indirect
 	github.com/golang/protobuf v1.3.3 // indirect
-	github.com/google/uuid v1.1.1 // indirect
+	github.com/google/uuid v1.1.1
 	github.com/gorhill/cronexpr v0.0.0-20180427100037-88b0669f7d75
 	go.mongodb.org/mongo-driver v1.3.0
 	go.uber.org/zap v1.13.0 // indirect

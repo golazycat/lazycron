@@ -23,6 +23,7 @@ const (
 	HttpParamJsonDecodeErrorNo
 	JobManagerErrorNo
 	JobLogErrorNo
+	WorkerManagerErrorNo
 )
 
 var (
@@ -161,6 +162,22 @@ func handleJobLog(w http.ResponseWriter, r *http.Request) {
 	protocol.HttpSuccess(w, jobs)
 }
 
+// 获取所有在线的workers
+// Method: POST
+// Return:
+//    data为所有在线的worker列表
+func handleWorkerList(w http.ResponseWriter, r *http.Request) {
+
+	workers, err := WorkerManager.GetWorkers()
+	if err != nil {
+		protocol.HttpFail(w, WorkerManagerErrorNo,
+			fmt.Sprintf("worker manage error: %s", err), nil)
+		return
+	}
+
+	protocol.HttpSuccess(w, workers)
+}
+
 // ApiServer 初始化器
 type ApiServerInitializer struct {
 	Conf *conf.MasterConf
@@ -177,6 +194,7 @@ func (a ApiServerInitializer) Init() error {
 	mux.HandleFunc("/job/list", handleJobList)
 	mux.HandleFunc("/job/kill", handleJobKill)
 	mux.HandleFunc("/job/log", handleJobLog)
+	mux.HandleFunc("/worker/list", handleWorkerList)
 
 	// static web root
 	staticDir := http.Dir(a.Conf.StaticWebRoot)

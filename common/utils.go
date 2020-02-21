@@ -2,13 +2,17 @@ package common
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
 	"github.com/coreos/etcd/mvcc/mvccpb"
 	"github.com/golazycat/lazycron/common/protocol"
 )
+
+var NoLocalIPFound = errors.New("no local ip found")
 
 // 将int转换为Duration->n秒
 func IntSecond(t int) time.Duration {
@@ -43,6 +47,11 @@ func GetJobNameFromKill(kv *mvccpb.KeyValue) string {
 	return strings.TrimPrefix(string(kv.Key), JobKillPrefix)
 }
 
+// 从KV worker中的key取得worker ID
+func GetIDFromWorker(kv *mvccpb.KeyValue) string {
+	return strings.TrimPrefix(string(kv.Key), JobWorkerPrefix)
+}
+
 // 让程序永远运行下去
 func LoopForever() {
 	for {
@@ -64,4 +73,23 @@ var colorMap = map[int]int{
 // 返回有颜色的字体
 func ColorString(s string, color int) string {
 	return fmt.Sprintf("\033[%d;1m%s\033[0m", colorMap[color], s)
+}
+
+func GetLocalIp() (string, error) {
+	addrs, err := net.InterfaceAddrs()
+	if err != nil {
+		return "", err
+	}
+
+	for _, addr := range addrs {
+		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
+
+			// 跳过Ipv6
+			if ipNet.IP.To4() != nil {
+				return ipNet.IP.String(), nil
+			}
+
+		}
+	}
+	return "", NoLocalIPFound
 }
