@@ -82,9 +82,11 @@ func (conf *RunConf) SetDefault() {
 type MongoConf struct {
 	ConnectUrl     string `json:"mongodb.connect_url"`
 	ConnectTimeout int    `json:"mongodb.connect_timeout"`
+	WriteBatchSize int    `json:"mongodb.write_batch_size"`
 }
 
 func (m *MongoConf) SetDefault() {
 	m.ConnectUrl = "mongodb://localhost:27017"
 	m.ConnectTimeout = 5
+	m.WriteBatchSize = 100
 }

@@ -169,15 +169,7 @@ func (scheduler *SchedulerBody) handleJobResult(jobResult *JobExecuteResult) {
 			jobLog.Err = ""
 		}
 
-		go func() {
-
-			err := job2.Logger.Insert(&jobLog)
-			if err != nil {
-				logs.Warn.Printf("job log not saved, error: %s", err)
-			}
-
-		}()
-
+		job2.Logger.Insert(&jobLog)
 	}
 }
 

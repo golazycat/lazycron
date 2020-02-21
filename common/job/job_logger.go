@@ -3,6 +3,7 @@ package job
 import (
 	"context"
 	"os"
+	"time"
 
 	"github.com/golazycat/lazycron/common/protocol"
 
@@ -15,19 +16,65 @@ import (
 // log的格式为JobLog结构体
 type LoggerBody struct {
 	mongo.Connector
+	logChan   chan *protocol.JobLog
+	batchSize int
 }
 
-// 新加一个log
-func (logger *LoggerBody) Insert(jobLog *protocol.JobLog) error {
+type LogBatch struct {
+	logs []interface{}
+}
+
+func (logger *LoggerBody) BeginListening() {
+	go logger.listeningLogs()
+}
+
+func (logger *LoggerBody) listeningLogs() {
 
 	CheckLoggerInit()
 
-	_, err := logger.Collection.InsertOne(context.TODO(), jobLog)
-	if err != nil {
-		return err
+	timer := time.NewTicker(time.Second)
+
+	var logBatch *LogBatch = nil
+	flash := func(l int) {
+		if logBatch != nil && len(logBatch.logs) > l {
+			logger.insertBatch(logBatch)
+			logBatch = nil
+		}
 	}
 
-	return nil
+	for {
+
+		select {
+		case jobLog := <-logger.logChan:
+			if logBatch == nil {
+				logBatch = &LogBatch{}
+			}
+
+			logBatch.logs = append(logBatch.logs, jobLog)
+			flash(logger.batchSize - 1)
+
+		case <-timer.C:
+			flash(0)
+		}
+
+		time.Sleep(100 * time.Millisecond)
+	}
+
+}
+
+func (logger *LoggerBody) insertBatch(batch *LogBatch) {
+	_, _ = logger.Collection.InsertMany(context.TODO(), batch.logs)
+}
+
+// 新加一个log
+func (logger *LoggerBody) Insert(jobLog *protocol.JobLog) {
+
+	CheckLoggerInit()
+
+	go func() {
+		logger.logChan <- jobLog
+	}()
+
 }
 
 // 根据job name来查找所有的log
@@ -56,6 +103,8 @@ func (l LoggerInitializer) Init() error {
 	}
 
 	Logger.Connector = *conn
+	Logger.logChan = make(chan *protocol.JobLog)
+	Logger.batchSize = l.Conf.WriteBatchSize
 	isLInit = true
 
 	return nil

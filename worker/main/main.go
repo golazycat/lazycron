@@ -23,6 +23,7 @@ func main() {
 
 	baseinit.Init(job.LoggerInitializer{
 		Conf: workerConf.MongoConf}, "job log")
+	job.Logger.BeginListening()
 
 	baseinit.Init(worker.JobWorkerInitializer{
 		Conf: workerConf}, "job worker")
