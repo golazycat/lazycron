@@ -2,12 +2,12 @@ package main
 
 import (
 	"github.com/golazycat/lazycron/common"
-	"github.com/golazycat/lazycron/master"
+	"github.com/golazycat/lazycron/worker"
 )
 
 func main() {
 
-	master.Start(false)
-
+	worker.Start(false)
 	common.LoopForever()
+
 }

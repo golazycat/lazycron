@@ -129,6 +129,10 @@ type LoggerInitializer struct {
 
 func (l LoggerInitializer) Init() error {
 
+	if isLInit {
+		return nil
+	}
+
 	conn, err := mongo.CreateConnect(&l.Conf)
 	if err != nil {
 		return err

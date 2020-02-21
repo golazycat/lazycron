@@ -15,6 +15,7 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+out/
 
 ### Example user template template
 ### Example user template

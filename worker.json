@@ -1,0 +1,12 @@
+{
+  "etcd.endpoints": ["localhost:2379"],
+  "etcd.dial_timeout": 5,
+
+  "run.n_thread": 8,
+
+  "mongodb.connect_url": "mongodb://localhost:27017",
+  "mongodb.connect_timeout": 5,
+  "mongodb.write_batch_size": 100,
+
+  "log_job": false
+}

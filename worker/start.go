@@ -1,53 +1,51 @@
-package main
+package worker
 
 import (
 	"os"
 
-	"github.com/golazycat/lazycron/common/joblog"
-
-	"github.com/golazycat/lazycron/common"
 	"github.com/golazycat/lazycron/common/baseconf"
 	"github.com/golazycat/lazycron/common/baseinit"
+	"github.com/golazycat/lazycron/common/joblog"
 	"github.com/golazycat/lazycron/common/logs"
-	"github.com/golazycat/lazycron/worker"
 	"github.com/golazycat/lazycron/worker/conf"
 )
 
-func main() {
+func Start(simple bool) {
 
-	confFilename := baseconf.FileArg()
+	var confFilename = ""
+	if !simple {
+		confFilename = baseconf.FileArg()
+	}
 	workerConf := conf.ReadWorkerConf(confFilename)
 
 	baseinit.Init(baseinit.LoggersInitializer{
 		ErrorFilePath: ""}, "log")
 
-	baseinit.Init(worker.RegisterInitializer{
+	baseinit.Init(RegisterInitializer{
 		Conf: workerConf.EtcdConf}, "register")
 
 	baseinit.Init(joblog.LoggerInitializer{
 		Conf: workerConf.MongoConf}, "job log")
 	joblog.Logger.BeginListening()
 
-	baseinit.Init(worker.JobWorkerInitializer{
+	baseinit.Init(JobWorkerInitializer{
 		Conf: workerConf}, "job worker")
 
-	baseinit.Init(worker.ExecutorInitializer{}, "executor")
+	baseinit.Init(ExecutorInitializer{}, "executor")
 
-	baseinit.Init(worker.SchedulerInitializer{
+	baseinit.Init(SchedulerInitializer{
 		LogJob: workerConf.LogJob}, "scheduler")
 
 	logs.Info.Printf("use conf: %+v", workerConf)
 
-	err := worker.JobWorker.BeginWatchJobs()
+	err := JobWorker.BeginWatchJobs()
 	logs.Info.Printf("begin watching jobs...")
 	if err != nil {
 		logs.Error.Printf("watch job error: %s", err)
 		os.Exit(1)
 	}
 
-	worker.Scheduler.BeginScheduling()
+	Scheduler.BeginScheduling()
 	logs.Info.Printf("begin scheduling...")
-
-	common.LoopForever()
 
 }
