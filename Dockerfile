@@ -18,4 +18,4 @@ RUN cp -rf ./out $PREFIX
 
 WORKDIR $PREFIX
 
-CMD ["/bin/bash"]
+CMD ["master", "--conf", "master.json"]
