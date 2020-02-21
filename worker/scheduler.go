@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	job2 "github.com/golazycat/lazycron/common/job"
+	"github.com/golazycat/lazycron/common/joblog"
 
 	"github.com/gorhill/cronexpr"
 
@@ -157,10 +157,10 @@ func (scheduler *SchedulerBody) handleJobResult(jobResult *JobExecuteResult) {
 			JobName:          job.Name,
 			Command:          job.Command,
 			Output:           string(jobResult.Output),
-			PlanTime:         jobResult.ExecuteInfo.PlanTime.Unix(),
-			ScheduleTime:     jobResult.ExecuteInfo.RealTime.Unix(),
-			ExecuteStartTime: jobResult.StartTime.Unix(),
-			ExecuteEndTime:   jobResult.EndTime.Unix(),
+			PlanTime:         jobResult.ExecuteInfo.PlanTime.UnixNano() / 1000 / 1000,
+			ScheduleTime:     jobResult.ExecuteInfo.RealTime.UnixNano() / 1000 / 1000,
+			ExecuteStartTime: jobResult.StartTime.UnixNano() / 1000 / 1000,
+			ExecuteEndTime:   jobResult.EndTime.UnixNano() / 1000 / 1000,
 		}
 
 		if jobResult.Err != nil {
@@ -169,7 +169,7 @@ func (scheduler *SchedulerBody) handleJobResult(jobResult *JobExecuteResult) {
 			jobLog.Err = ""
 		}
 
-		job2.Logger.Insert(&jobLog)
+		joblog.Logger.Insert(&jobLog)
 	}
 }
 

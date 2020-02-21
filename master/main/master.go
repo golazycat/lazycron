@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"github.com/golazycat/lazycron/common/joblog"
+
 	"github.com/golazycat/lazycron/common"
 	"github.com/golazycat/lazycron/common/baseinit"
 
@@ -23,6 +25,9 @@ func main() {
 	// 初始化日志
 	baseinit.Init(baseinit.LoggersInitializer{
 		ErrorFilePath: masterConf.LogErrorFile}, "log")
+
+	baseinit.Init(joblog.LoggerInitializer{
+		Conf: masterConf.MongoConf}, "job log")
 
 	// 初始化环境
 	baseinit.Init(baseinit.RunInitializer{

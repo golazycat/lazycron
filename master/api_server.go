@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
+
+	"github.com/golazycat/lazycron/common/joblog"
 
 	"github.com/golazycat/lazycron/master/conf"
 
@@ -16,9 +19,10 @@ import (
 )
 
 const (
-	HttpParamParseErrorNo      = 1
-	HttpParamJsonDecodeErrorNo = 2
-	JobManagerErrorNo          = 3
+	HttpParamParseErrorNo = iota + 1
+	HttpParamJsonDecodeErrorNo
+	JobManagerErrorNo
+	JobLogErrorNo
 )
 
 var (
@@ -97,7 +101,7 @@ func handleJobDelete(w http.ResponseWriter, r *http.Request) {
 
 // 列出所有任务
 // Method: POST
-// Response Body:
+// Return:
 //     data会保存所有任务列表，如果没有任务，data保存空列表
 func handleJobList(w http.ResponseWriter, _ *http.Request) {
 
@@ -128,6 +132,35 @@ func handleJobKill(w http.ResponseWriter, r *http.Request) {
 	protocol.HttpSuccess(w, nil)
 }
 
+// 获取job执行的参数
+// Method: POST
+// Request Body:
+//     name: 要查询的job名称
+//     skip: 分页参数
+//     limit: 分页参数
+// Return:
+//     如果查询到日志，data会保存查询到的job日志
+func handleJobLog(w http.ResponseWriter, r *http.Request) {
+
+	params := parseFromAndGetMany(w, r, []string{"name", "skip", "limit"})
+	if params == nil {
+		return
+	}
+
+	name := params["name"]
+	skip := getIntValueOrDefault(params["skip"], 0)
+	limit := getIntValueOrDefault(params["limit"], 20)
+
+	jobs, err := joblog.Logger.FindByJobLogName(name, int64(skip), int64(limit))
+	if err != nil {
+		protocol.HttpFail(w, JobLogErrorNo,
+			fmt.Sprintf("job log error: %s", err), nil)
+		return
+	}
+
+	protocol.HttpSuccess(w, jobs)
+}
+
 // ApiServer 初始化器
 type ApiServerInitializer struct {
 	Conf *conf.MasterConf
@@ -143,6 +176,7 @@ func (a ApiServerInitializer) Init() error {
 	mux.HandleFunc("/job/del", handleJobDelete)
 	mux.HandleFunc("/job/list", handleJobList)
 	mux.HandleFunc("/job/kill", handleJobKill)
+	mux.HandleFunc("/job/log", handleJobLog)
 
 	// static web root
 	staticDir := http.Dir(a.Conf.StaticWebRoot)
@@ -185,13 +219,23 @@ func ApiServerStartListen() error {
 	return nil
 }
 
-// 辅助函数，解析表单并返回某个key的value
-// 如果解析失败或者key不存在，会自动将错误json写入responseWriter并返回""
-func parseFormAndGet(w http.ResponseWriter, r *http.Request, paramName string) string {
+func parseForm(w http.ResponseWriter, r *http.Request) error {
 
 	if err := r.ParseForm(); err != nil {
 		protocol.HttpFail(w, HttpParamParseErrorNo,
 			"parse form error", nil)
+		return err
+	}
+
+	return nil
+}
+
+// 辅助函数，解析表单并返回某个key的value
+// 如果解析失败或者key不存在，会自动将错误json写入responseWriter并返回""
+func parseFormAndGet(w http.ResponseWriter, r *http.Request, paramName string) string {
+
+	err := parseForm(w, r)
+	if err != nil {
 		return ""
 	}
 
@@ -203,6 +247,34 @@ func parseFormAndGet(w http.ResponseWriter, r *http.Request, paramName string) s
 
 	}
 	return val
+}
+
+func parseFromAndGetMany(w http.ResponseWriter, r *http.Request, paramNames []string) map[string]string {
+
+	err := parseForm(w, r)
+	if err != nil {
+		return nil
+	}
+
+	var params = make(map[string]string, len(paramNames))
+
+	for _, paramName := range paramNames {
+		val := parseFormAndGet(w, r, paramName)
+		if val == "" {
+			return nil
+		} else {
+			params[paramName] = val
+		}
+	}
+
+	return params
+}
+
+func getIntValueOrDefault(sVal string, valDefault int) int {
+	if val, err := strconv.Atoi(sVal); err == nil {
+		return val
+	}
+	return valDefault
 }
 
 // JobManager错误通用返回

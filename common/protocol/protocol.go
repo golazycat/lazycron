@@ -30,14 +30,14 @@ type JobEvent struct {
 }
 
 type JobLog struct {
-	JobName          string `bson:"job_name"`
-	Command          string `bson:"command"`
-	Err              string `bson:"err"`
-	Output           string `bson:"output"`
-	PlanTime         int64  `bson:"plan_time"`
-	ScheduleTime     int64  `bson:"schedule_time"`
-	ExecuteStartTime int64  `bson:"exec_start_time"`
-	ExecuteEndTime   int64  `bson:"exec_end_time"`
+	JobName          string `json:"job_name" bson:"job_name"`
+	Command          string `json:"command" bson:"command"`
+	Err              string `json:"err" bson:"err"`
+	Output           string `json:"output" bson:"output"`
+	PlanTime         int64  `json:"plan_time" bson:"plan_time"`
+	ScheduleTime     int64  `json:"schedule_time" bson:"schedule_time"`
+	ExecuteStartTime int64  `json:"exec_start_time" bson:"exec_start_time"`
+	ExecuteEndTime   int64  `json:"exec_end_time" bson:"exec_end_time"`
 }
 
 // Http API返回的所有数据都遵循这个结构

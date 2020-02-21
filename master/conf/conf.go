@@ -6,6 +6,7 @@ import "github.com/golazycat/lazycron/common/baseconf"
 type MasterConf struct {
 	baseconf.EtcdConf
 	baseconf.RunConf
+	baseconf.MongoConf
 	HttpAddress      string `json:"http.addr"`
 	HttpPort         int    `json:"http.port"`
 	HttpReadTimeout  int    `json:"http.read_timeout"`
@@ -19,6 +20,7 @@ func (c *MasterConf) SetDefault() {
 
 	c.EtcdConf.SetDefault()
 	c.RunConf.SetDefault()
+	c.MongoConf.SetDefault()
 
 	c.HttpAddress = ""
 	c.HttpPort = 8070

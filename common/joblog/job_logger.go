@@ -1,9 +1,11 @@
-package job
+package joblog
 
 import (
 	"context"
 	"os"
 	"time"
+
+	"go.mongodb.org/mongo-driver/mongo/options"
 
 	"github.com/golazycat/lazycron/common/protocol"
 
@@ -22,6 +24,14 @@ type LoggerBody struct {
 
 type LogBatch struct {
 	logs []interface{}
+}
+
+type LogFilter struct {
+	JobName string `bson:"job_name"`
+}
+
+type SortLogByStartTime struct {
+	SortOrder int `bson:"exec_start_time"`
 }
 
 func (logger *LoggerBody) BeginListening() {
@@ -78,11 +88,33 @@ func (logger *LoggerBody) Insert(jobLog *protocol.JobLog) {
 }
 
 // 根据job name来查找所有的log
-func (logger *LoggerBody) FindByJobLogName(jobName string) ([]protocol.JobLog, error) {
+func (logger *LoggerBody) FindByJobLogName(
+	jobName string, skip int64, limit int64) ([]*protocol.JobLog, error) {
 
 	CheckLoggerInit()
 
-	return nil, nil
+	filter := &LogFilter{JobName: jobName}
+
+	// 根据任务开始时间对log进行排序
+	logSort := SortLogByStartTime{SortOrder: -1}
+
+	cursor, err := logger.Collection.Find(context.TODO(), filter,
+		options.Find().SetSort(logSort).SetSkip(skip).SetLimit(limit))
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(context.TODO())
+
+	result := make([]*protocol.JobLog, 0)
+	for cursor.Next(context.TODO()) {
+		jobLob := protocol.JobLog{}
+		if err = cursor.Decode(&jobLob); err != nil {
+			continue
+		}
+		result = append(result, &jobLob)
+	}
+
+	return result, nil
 }
 
 var (
