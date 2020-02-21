@@ -34,7 +34,7 @@ func InitLoggers(errorPath string) error {
 		errWriter = os.Stderr
 	}
 
-	Error = log.New(errWriter, common.ColorString("[INF] ", common.ColorFontGreen), log.LstdFlags)
+	Error = log.New(errWriter, common.ColorString("[ERR] ", common.ColorFontRed), log.LstdFlags)
 	Warn = log.New(os.Stdout, common.ColorString("[WAR] ", common.ColorFontYellow), log.LstdFlags)
 	Info = log.New(os.Stdout, common.ColorString("[INF] ", common.ColorFontGreen), log.LstdFlags)
 
