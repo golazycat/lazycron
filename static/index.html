@@ -26,6 +26,7 @@
         <div class="row">
             <div class="col-md-12">
                 <button type="button" id="new-job" class="btn btn-primary">新建任务</button>
+                <button type="button" id="list-workers" class="btn btn-success">健康节点</button>
             </div>
         </div>
 
@@ -121,6 +122,35 @@
         </div><!-- /.modal -->
     </div>
 
+    <div class="modal fade" id="worker-modal" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+                    <h4 class="modal-title">健康节点</h4>
+                </div>
+                <div class="modal-body">
+
+                    <table id="worker-list" class="table table-striped">
+                        <thead>
+                        <tr>
+                            <th>节点ID</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+
+
+
+                        </tbody>
+                    </table>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
     <script src="js/index.js"></script>
 
 </body>

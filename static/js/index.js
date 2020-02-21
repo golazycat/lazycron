@@ -126,6 +126,27 @@ $(document).ready(function () {
 
     });
 
+    $("#list-workers").on("click", function () {
+       $.ajax({
+           url: "/worker/list",
+           dataType: 'json',
+           success: function (resp) {
+               if (resp.errno != 0) {
+                   return;
+               }
+               var workers = resp.data;
+               for (var i = 0; i < workers.length; ++i) {
+                   var id = workers[i].id;
+                   var tr = $('<tr>');
+                   tr.append($('<td>').html(id));
+                   $('#worker-list tbody').append(tr);
+               }
+           }
+       });
+
+        $('#worker-modal').modal('show');
+    });
+
     function rebuild_list() {
         $.ajax({
             url: "/job/list",
